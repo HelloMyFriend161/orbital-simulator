@@ -6,7 +6,6 @@ It is advised that you know at least a little about how LÖVE works to be able t
 
 # Plans
 - Cartesian/Keplerian conversion
-- in-program Data inputs
 - Multiple celestial bodies
 - Satellites or something
 - Complex Simulations
