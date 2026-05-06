@@ -180,19 +180,19 @@ function love.update()
             end
         end
 
-        if love.keyboard.isDown(".") and keydown == false and not string.find(inpnum, "%.") then
+        if love.keyboard.isDown(".") and keydown == false and not inpnum:find("%.") then
             keydown = true
             currkey = 10
             lastkey = "."
             inpnum = inpnum.."."
         end
-        if love.keyboard.isDown("e") and keydown == false and not string.find(inpnum, "e") then
+        if love.keyboard.isDown("e") and keydown == false and not inpnum:find("%.") then
             keydown = true
             currkey = 10
             lastkey = "e"
             inpnum = inpnum.."e"
         end
-        if love.keyboard.isDown("-") and keydown == false and not string.find(inpnum, "-") then
+        if love.keyboard.isDown("-") and keydown == false and not inpnum:find("%.") then
             keydown = true
             currkey = 10
             lastkey = "-"
@@ -224,9 +224,9 @@ function love.update()
                     if inpnum == nil or inpnum == "" or inpnum:sub(1,1) == "e" or inpnum:sub(1,1) == "-" then
                         y.v = tonumber(0)
                     else
-                        if string.sub(inpnum, -1) == "e" or string.sub(inpnum, -1) == "-" then
-                            inpnum = inpnum:gsub(1, #inpnum - 1)
-                        elseif string.find(inpnum, "-") ~= nil and string.find(inpnum, "e") == nil then
+                        if inpnum:sub(-1) == "e" or inpnum:sub(-1) == "-" then
+                            inpnum = inpnum:sub(1, #inpnum - 1)
+                        elseif inpnum:find("-") ~= nil and inpnum:find("e") == nil then
                             inpnum = inpnum:gsub("-","")
                         end
                         if dspmodes[mode] ~= "Apoapsis" and dspmodes[mode] ~= "Periapsis" then
@@ -379,6 +379,7 @@ function love.draw()
             love.graphics.print(x.." "..y.v   , 12, 12 * i)
             i = i + 1
         end
+        love.graphics.print((ellx * scale), 12, 12 * i)
 
         love.graphics.print(scale, 12, love.graphics.getPixelHeight() - 24)
         love.graphics.print(posx..":"..posy, 12, love.graphics.getPixelHeight() - 36)
