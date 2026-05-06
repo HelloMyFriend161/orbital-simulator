@@ -2,7 +2,7 @@
 -- please mind my terrible variable naming
 
 -- ########################################### PERSONAL NOTES ###########################################
--- debug button
+-- error catching at line 227 ish
 
 --[[  ORBITAL VARIABLES  ]] --
 local posx = 0
@@ -30,10 +30,14 @@ local orbitals = {
     peri  = {k = 5, v = 0},
     smi  = {k = 6, v = 0},
 }
+local stored = {
+    apo = 0,
+    per = 0,
+}
 
 --[[  OTHER VARIABLES  ]] --
 local eccmin = 0
-local eccmax = 1 - eccoffmin
+local eccmax = 1 - eccoffmin^2
 
 local factor = 1
 local facstd = 1
@@ -68,7 +72,7 @@ local keydown = false
 local currkey = 1
 local lastkey
 
---[[ CHANGE THIS IF YOU WANT ]]
+--[[ CHANGE THIS IF YOU WANT BUT KEEP IN MIND SOME KEYS WONT WORK ]]
 local keymap = {
     up = "w",
     down = "s",
@@ -85,8 +89,11 @@ local keymap = {
     eccdown = "f",
     smaup = "t",
     smadown = "g",
+    resetpos = "kp0",
+    followellipse = "kp."
 }
 
+local followellipse = false
 local debug = false
 
 local perstrt
@@ -100,7 +107,6 @@ local pposy
 
 local ellx
 local elly
-
 
 -- [[ RANDOM FUNCTIONS IDK ]]
 local function zoom(z)
@@ -164,21 +170,33 @@ function love.update()
         end
 
         if love.keyboard.isDown(keymap.undo) and keydown == false then
-            if #tostring(inpnum) > 1 then
+            if #inpnum > 1 then
                 keydown = true
                 currkey = 10
                 lastkey = keymap.undo
-                inpnum = string.sub(inpnum, 1, #tostring(inpnum) - 1)
+                inpnum = inpnum:sub(1, #inpnum - 1)
             else
                 inpnum = ""
             end
         end
 
-        if love.keyboard.isDown(".") and keydown == false and not string.find(tostring(inpnum), "%.") then
+        if love.keyboard.isDown(".") and keydown == false and not string.find(inpnum, "%.") then
             keydown = true
             currkey = 10
             lastkey = "."
             inpnum = inpnum.."."
+        end
+        if love.keyboard.isDown("e") and keydown == false and not string.find(inpnum, "e") then
+            keydown = true
+            currkey = 10
+            lastkey = "e"
+            inpnum = inpnum.."e"
+        end
+        if love.keyboard.isDown("-") and keydown == false and not string.find(inpnum, "-") then
+            keydown = true
+            currkey = 10
+            lastkey = "-"
+            inpnum = inpnum.."-"
         end
         
         for i = 1, 9 do
@@ -203,10 +221,27 @@ function love.update()
         if love.keyboard.isDown(keymap.confirm) then
             for _, y in pairs(orbitals) do
                 if y.k == mode then
-                    if inpnum == nil or inpnum == "" then
+                    if inpnum == nil or inpnum == "" or inpnum:sub(1,1) == "e" or inpnum:sub(1,1) == "-" then
                         y.v = tonumber(0)
                     else
-                        y.v = tonumber(inpnum)
+                        if string.sub(inpnum, -1) == "e" or string.sub(inpnum, -1) == "-" then
+                            inpnum = inpnum:gsub(1, #inpnum - 1)
+                        elseif string.find(inpnum, "-") ~= nil and string.find(inpnum, "e") == nil then
+                            inpnum = inpnum:gsub("-","")
+                        end
+                        if dspmodes[mode] ~= "Apoapsis" and dspmodes[mode] ~= "Periapsis" then
+                            y.v = tonumber(inpnum)
+                        else
+                            if dspmodes[mode] == "Apoapsis" then
+                                stored.apo = tonumber(inpnum)
+                            elseif dspmodes[mode] == "Periapsis" then
+                                stored.per = tonumber(inpnum)
+                            end
+                            if not (stored.apo == 0 or stored.per == 0) then
+                                orbitals.ecc.v = (stored.apo-stored.per)/(stored.apo+stored.per)
+                                orbitals.sma.v = (stored.per + stored.apo)/2
+                            end
+                        end
                     end
                 end
             end
@@ -245,15 +280,15 @@ function love.update()
         end
         if orbitals.sma.v  < orbitals.radius.v  then orbitals.sma.v  = orbitals.radius.v  end
 
-        if love.keyboard.isDown("2") then
-            eccoff = eccoffstd
-            orboff = orboffstd
-            factor = facstd
-        end
         if love.keyboard.isDown("1") then
             eccoff = eccoffmin
             orboff = orboffmin
             factor = facmin
+        end
+        if love.keyboard.isDown("2") then
+            eccoff = eccoffstd
+            orboff = orboffstd
+            factor = facstd
         end
         if love.keyboard.isDown("3") then
             eccoff = eccoffmax
@@ -265,16 +300,27 @@ function love.update()
             inpmode = true
         end
 
-        if love.keyboard.isDown("kp0") then
+        if love.keyboard.isDown(keymap.resetpos) then
             posx, posy = 0, 0
         end
+        if love.keyboard.isDown(keymap.followellipse) and keydown == false then
+            keydown = true
+            currkey = 10
+            lastkey = keymap.followellipse
 
+            followellipse = not followellipse
+        end
     end
 
     if lastkey ~= nil then
         if not love.keyboard.isDown(lastkey) and currkey == 10 then
             keydown = false
         end
+    end
+
+    if followellipse == true then
+        posx = (pposx - ellx) * scale
+        posy = 0
     end
 
     orbitals.smi.v  = orbitals.sma.v *math.sqrt(1-(orbitals.ecc.v ^2))
